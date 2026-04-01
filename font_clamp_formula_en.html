@@ -1,0 +1,180 @@
+
+<style>
+*{box-sizing:border-box;margin:1%;padding:0}
+.wrap{padding:1.5rem 0;font-family:var(--font-sans)}
+.section{margin-bottom:1.5rem}
+.label{font-size:16px;color:var(--color-text-secondary);margin-bottom:4px}
+.slider-row{display:flex;align-items:center;gap:12px;margin-bottom:.75rem}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem}
+.metric-label{font-size:11px;color:var(--color-text-secondary);margin-bottom:2px}
+.metric-val{font-size:20px;font-weight:500;color:var(--color-text-primary)}
+.formula-box{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:.875rem 1rem;font-family:var(--font-mono);font-size:12.5px;color:var(--color-text-primary);white-space:pre-wrap;line-height:1.7}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-size:11px;font-weight:500;color:var(--color-text-secondary);text-align:left;padding:5px 8px;border-bottom:0.5px solid var(--color-border-tertiary)}
+td{padding:5px 8px;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-primary)}
+tr:last-child td{border-bottom:none}
+.ok{color:#27500A;background:#EAF3DE;font-size:11px;padding:2px 7px;border-radius:9px;font-weight:500}
+.warn{color:#633806;background:#FAEEDA;font-size:11px;padding:2px 7px;border-radius:9px;font-weight:500}
+.bad{color:#791F1F;background:#FCEBEB;font-size:11px;padding:2px 7px;border-radius:9px;font-weight:500}
+.tag-btn{padding:5px 12px;font-size:12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:transparent;color:var(--color-text-primary);cursor:pointer;margin:0 4px 4px 0}
+.tag-btn.active{background:var(--color-text-primary);color:var(--color-background-primary)}
+.highlight{font-weight:500;color:var(--color-text-primary)}
+.dim{color:var(--color-text-secondary)}
+.bar-wrap{display:flex;align-items:flex-end;gap:6px;height:80px;margin-top:.5rem}
+.bar{border-radius:4px 4px 0 0;min-width:28px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;font-size:10px;font-weight:500;transition:height .2s}
+</style>
+<div class="wrap">
+
+<div class="section">
+  <div class="label"> UserInputPx (px)</div>
+  <div class="slider-row">
+    <input type="range" min="5" max="99" value="72" id="userPx" step="1" style="flex:1"/>
+    <span style="font-size:15px;font-weight:500;min-width:40px" id="pxOut">72px</span>
+  </div>
+</div>
+
+<div id="panel-new">
+<div class="card section">
+<div style="font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:.5rem">Fundamental Principles</div>
+<div style="font-size:12.5px;color:var(--color-text-secondary);line-height:1.7;margin-bottom:.75rem">The user input is scaled to the maximum desktop size, scaled down naturally according to the viewport ratio, and clamped to a minimum value between 60% of the input and the lower limit.</div>
+<div class="formula-box" id="formulaOut"></div>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <div class="metric-label">Mobile Live Rendering (375px Criteria)</div>
+    <div class="metric-val" id="mobileVal">-</div>
+  </div>
+  <div class="card">
+    <div class="metric-label">Desktop Rendering (1440px Criteria)</div>
+    <div class="metric-val" id="desktopVal">-</div>
+  </div>
+</div>
+
+<div class="card">
+<div style="font-size:13px;font-weight:500;margin-bottom:.75rem">Simulations by Tag — Input Values <span id="tagInputLabel">72px</span></div>
+<table>
+<thead><tr><th>tag</th><th>input</th><th>Mobile results</th><th>Desktop results</th><th>status</th></tr></thead>
+<tbody id="newTbody"></tbody>
+</table>
+</div>
+</div>
+
+
+</div>
+
+<script>
+const tags=[
+  {name:'h1',mobile:38,desktop:56},
+  {name:'h2',mobile:32,desktop:44},
+  {name:'h3',mobile:28,desktop:36},
+  {name:'h4',mobile:24,desktop:28},
+  {name:'h5',mobile:19,desktop:24},
+  {name:'h6',mobile:17,desktop:18},
+  {name:'body',mobile:17,desktop:16},
+  {name:'caption',mobile:14,desktop:13},
+];
+
+let mode='new';
+function setMode(m){
+  mode=m;
+  ['new','old','compare'].forEach(x=>{
+    document.getElementById('panel-'+x).style.display=x===m?'':'none';
+    document.querySelectorAll('.tab')[['new','old','compare'].indexOf(x)].className='tab'+(x===m?' active':'');
+  });
+  render();
+}
+
+// New formula: clamp(max(INPUT*0.5, INPUT*0.45+4px), INPUT/1440*100vw, INPUT)
+// Simplified: the vw mid is derived from INPUT so it naturally scales
+// min = max(5px, INPUT * 0.55) — at 375px viewport, vw will land roughly there
+function newMobile(u){
+  // at 375px: vw-based mid = u/1440*375 = u*0.26 — too small
+  // better: use viewport-relative: at 375px with 4.5vw mid → 375*0.045=16.8px... not scaled to u
+  // Best: clamp(min, u/1440*vw, u) where vw value hits u at 1440
+  // At 375px viewport: result = clamp(min, u*375/1440, u) = clamp(min, u*0.26, u)
+  // That's too small. Instead use slope between (375, target_mobile) and (1440, u)
+  // target_mobile = u * (375/1440)^0.6  — nice curve
+  const minV = Math.max(5, Math.round(u * 0.55));
+  const atMobile = Math.round(u * Math.pow(375/1440, 0.55));
+  return Math.max(minV, atMobile);
+}
+function newDesktop(u){ return u; }
+
+function oldMobile(tag, u){
+  // old formula: (u / desktop_px) * mobile_px  — ratio-based
+  return Math.round((u / tag.desktop) * tag.mobile);
+}
+
+function statusNew(u, mob){
+  if(mob > u) return '<span class="bad">Comeback!</span>';
+  if(mob < 5) return '<span class="warn">Too small</span>';
+  return '<span class="ok">Good</span>';
+}
+function statusOld(tag, u, mob){
+  if(mob > u) return '<span class="bad">Comeback! '+mob+'px</span>';
+  if(mob > 99) return '<span class="warn">excess</span>';
+  return '<span class="ok">정상</span>';
+}
+
+function getFormula(u){
+  const minV = Math.max(5, Math.round(u * 0.55));
+  const vwVal = (u / 14.4).toFixed(1); // u/1440*100
+  return `/* User ${u}px input  automatically generate */\n.bb-font-[tag] span {\n  font-size: clamp(\n    ${minV}px,          /* min: 55% of user input or 5px */\n    ${vwVal}vw,         /* fluid: Viewport Scale */\n    ${u}px              /* max: same as user input */\n  ) !important;\n}`;
+}
+
+function render(){
+  const u = parseInt(document.getElementById('userPx').value);
+  document.getElementById('pxOut').textContent = u+'px';
+
+  if(mode==='new'){
+    document.getElementById('tagInputLabel').textContent = u+'px';
+    const mob = newMobile(u);
+    const desk = newDesktop(u);
+    document.getElementById('mobileVal').textContent = mob+'px';
+    document.getElementById('desktopVal').textContent = desk+'px';
+    document.getElementById('formulaOut').textContent = getFormula(u);
+
+    let rows='';
+    tags.forEach(t=>{
+      // each tag gets same formula since user inputs PER TAG independently
+      const m=newMobile(u), d=newDesktop(u);
+      rows+=`<tr><td><strong>${t.name}</strong></td><td>${u}px</td><td class="highlight">${m}px</td><td class="highlight">${d}px</td><td>${statusNew(u,m)}</td></tr>`;
+    });
+    document.getElementById('newTbody').innerHTML=rows;
+  }
+
+  if(mode==='old'){
+    let rows='';
+    tags.forEach(t=>{
+      const mob=oldMobile(t,u);
+      rows+=`<tr><td><strong>${t.name}</strong></td><td>${u}px</td><td class="${mob>u||mob>99?'bad':'highlight'}">${mob}px</td><td class="highlight">${u}px</td><td>${statusOld(t,u,mob)}</td></tr>`;
+    });
+    document.getElementById('oldTbody').innerHTML=rows;
+  }
+
+  if(mode==='compare'){
+    document.getElementById('cmpLabel').textContent=u+'px';
+    let rows='';
+    tags.forEach(t=>{
+      const oldM=oldMobile(t,u);
+      const newM=newMobile(u);
+      const diff=newM-oldM;
+      const diffStr=(diff>=0?'+':'')+diff+'px';
+      const oldBad=oldM>u;
+      rows+=`<tr>
+        <td><strong>${t.name}</strong></td>
+        <td>${u}px</td>
+        <td class="${oldBad?'bad':'dim'}">${oldM}px ${oldBad?'⚠':''}}</td>
+        <td class="highlight">${newM}px</td>
+        <td style="color:${diff>0?'#27500A':'#185FA5'};font-weight:500">${diffStr}</td>
+      </tr>`;
+    });
+    document.getElementById('cmpTbody').innerHTML=rows;
+  }
+}
+
+document.getElementById('userPx').addEventListener('input',render);
+render();
+</script>
