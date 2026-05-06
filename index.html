@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Font Clamp Formula Tester v3</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f11;
+    --surface: #17171a;
+    --surface2: #1e1e22;
+    --border: #2a2a30;
+    --accent: #7c6aff;
+    --accent2: #36d6a0;
+    --warn: #f5a623;
+    --bad: #f04040;
+    --text: #e8e8f0;
+    --text2: #888899;
+    --mono: 'DM Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  .header {
+    margin-bottom: 2.5rem;
+  }
+  .header h1 {
+    font-size: clamp(1.5rem, 4vw, 2.25rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #fff 30%, var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: .4rem;
+  }
+  .header p {
+    color: var(--text2);
+    font-size: .875rem;
+    font-weight: 300;
+  }
+
+  /* ── FORMULA EXPLANATION ── */
+  .explain-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .explain-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .explain-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .explain-card.purple::before { background: var(--accent); }
+  .explain-card.green::before  { background: var(--accent2); }
+  .explain-card.orange::before { background: var(--warn); }
+  .explain-card.red::before    { background: var(--bad); }
+
+  .explain-card .icon {
+    font-size: 1.5rem;
+    margin-bottom: .6rem;
+  }
+  .explain-card h3 {
+    font-size: .8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text2);
+    margin-bottom: .4rem;
+  }
+  .explain-card p {
+    font-size: .825rem;
+    line-height: 1.6;
+    color: var(--text);
+  }
+  .explain-card strong { color: var(--accent2); }
+
+  /* ── FORMULA BOX ── */
+  .formula-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .formula-section h2 {
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--text2);
+    margin-bottom: 1rem;
+  }
+  .formula-code {
+    font-family: var(--mono);
+    font-size: .8rem;
+    line-height: 1.9;
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--border);
+    white-space: pre-wrap;
+  }
+  .c-purple { color: #a78bfa; }
+  .c-green  { color: #34d399; }
+  .c-orange { color: #fbbf24; }
+  .c-gray   { color: #555566; }
+
+  /* ── SLIDER ── */
+  .slider-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .slider-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 1rem;
+  }
+  .slider-label span:first-child {
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--text2);
+  }
+  .slider-label .px-display {
+    font-family: var(--mono);
+    font-size: 2rem;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: -.03em;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    margin-bottom: 1.25rem;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 0 4px rgba(124,106,255,.2);
+    transition: box-shadow .2s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 0 8px rgba(124,106,255,.25);
+  }
+
+  /* ── METRICS ── */
+  .metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: .75rem;
+    margin-bottom: 1.5rem;
+  }
+  .metric {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: .875rem 1rem;
+  }
+  .metric-label {
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text2);
+    margin-bottom: .3rem;
+  }
+  .metric-val {
+    font-family: var(--mono);
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .metric-val.accent { color: var(--accent2); }
+
+  /* ── LIVE CSS ── */
+  .live-css {
+    font-family: var(--mono);
+    font-size: .775rem;
+    line-height: 1.8;
+    background: var(--bg);
+    border-radius: 8px;
+    padding: .875rem 1rem;
+    border: 1px solid var(--border);
+    white-space: pre-wrap;
+    color: var(--text2);
+  }
+
+  /* ── TABLE ── */
+  .table-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+  .table-header {
+    padding: 1rem 1.25rem .75rem;
+    border-bottom: 1px solid var(--border);
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--text2);
+  }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    font-size: .7rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text2);
+    text-align: left;
+    padding: .6rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: .65rem 1.25rem;
+    font-size: .825rem;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  .tag-name { font-family: var(--mono); font-weight: 500; color: var(--accent); }
+  .val-mobile { font-family: var(--mono); color: var(--accent2); font-weight: 500; }
+  .val-desktop { font-family: var(--mono); color: var(--text2); }
+  .badge {
+    display: inline-block;
+    font-size: .65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .badge.ok   { background: rgba(54,214,160,.15); color: var(--accent2); }
+  .badge.warn { background: rgba(245,166,35,.15);  color: var(--warn); }
+  .badge.same { background: rgba(124,106,255,.15); color: var(--accent); }
+
+  /* ── UX ANALYSIS ── */
+  .ux-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .ux-section h2 {
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--text2);
+    margin-bottom: 1.25rem;
+  }
+  .ux-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .ux-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .ux-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-top: .35rem;
+    flex-shrink: 0;
+  }
+  .ux-dot.green  { background: var(--accent2); }
+  .ux-dot.purple { background: var(--accent); }
+  .ux-dot.orange { background: var(--warn); }
+  .ux-content h4 { font-size: .875rem; font-weight: 500; margin-bottom: .25rem; }
+  .ux-content p  { font-size: .8rem; color: var(--text2); line-height: 1.6; }
+  .ux-content strong { color: var(--text); }
+
+  /* ── VISUAL CURVE ── */
+  .curve-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .curve-section h2 {
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--text2);
+    margin-bottom: 1rem;
+  }
+  canvas { width: 100%; border-radius: 8px; display: block; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Font Clamp Formula Tester</h1>
+  <p>v3 — Updated formula · Mobile/Desktop optimization analysis</p>
+</div>
+
+<!-- FORMULA EXPLANATION CARDS -->
+<div class="explain-grid">
+  <div class="explain-card purple">
+    <div class="icon">📐</div>
+    <h3>Formula Logic</h3>
+    <p>Uses <strong>min(input, 0.23x+25)</strong> as the mobile floor. Large values shrink naturally, small values stay 1:1.</p>
+  </div>
+  <div class="explain-card green">
+    <div class="icon">📱</div>
+    <h3>Mobile Friendly</h3>
+    <p>99px → <strong>48px</strong> on mobile. Prevents oversized text from breaking small screen layouts.</p>
+  </div>
+  <div class="explain-card orange">
+    <div class="icon">🖥️</div>
+    <h3>Desktop Faithful</h3>
+    <p>Desktop always renders <strong>exactly</strong> what the user typed. No surprises, full creative control.</p>
+  </div>
+  <div class="explain-card red">
+    <div class="icon">🔒</div>
+    <h3>Small Sizes Protected</h3>
+    <p>Below 24px, mobile = desktop. <strong>No unwanted shrinking</strong> of body text or captions.</p>
+  </div>
+</div>
+
+<!-- STATIC FORMULA -->
+<div class="formula-section">
+  <h2>CSS Formula — Applied per tag independently</h2>
+  <div class="formula-code"><span class="c-gray">/* Applied to each bb-font-[tag] span independently */</span>
+<span class="c-purple">.bb-font-[tag] span</span> {
+  font-size: <span class="c-orange">clamp</span>(
+    <span class="c-green">min(</span><span class="c-orange">#userInnput#  px</span>, <span class="c-orange">calc(#userInnput#  px * 0.23 + 25px)</span><span class="c-green">)</span>,  <span class="c-gray">/* mobile min */</span>
+    <span class="c-orange">calc(#userInnput#   / 14.4 * 1vw)</span>,                              <span class="c-gray">/* fluid mid */</span>
+    <span class="c-orange">#userInnput#  px</span>                                                   <span class="c-gray">/* desktop max */</span>
+  ) <span class="c-purple">!important</span>;
+}</div>
+</div>
+
+<!-- SLIDER -->
+<div class="slider-section">
+  <div class="slider-label">
+    <span>User Input</span>
+    <span class="px-display" id="pxOut">72px</span>
+  </div>
+  <input type="range" min="5" max="99" value="72" id="userPx" step="1"/>
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">📱 Mobile (375px)</div>
+      <div class="metric-val accent" id="mobileVal">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">🖥️ Desktop (1440px)</div>
+      <div class="metric-val" id="desktopVal">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">📉 Reduction ratio</div>
+      <div class="metric-val" id="ratioVal">—</div>
+    </div>
+  </div>
+
+  <div class="live-css" id="liveCss"></div>
+</div>
+
+<!-- CURVE CHART -->
+<div class="curve-section">
+  <h2>Mobile Output Curve — All input values (5–99px)</h2>
+  <canvas id="curveCanvas" height="200"></canvas>
+</div>
+
+<!-- TABLE -->
+<div class="table-section">
+  <div class="table-header">Simulation by tag — each tag receives independent user input</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Tag</th>
+        <th>User Input</th>
+        <th>📱 Mobile result</th>
+        <th>🖥️ Desktop result</th>
+        <th>Reduction</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<!-- UX ANALYSIS -->
+<div class="ux-section">
+  <h2>UX &amp; Mobile Optimization Analysis</h2>
+  <div class="ux-row">
+    <div class="ux-dot green"></div>
+    <div class="ux-content">
+      <h4>Large text (56–99px) — Aggressive scaling</h4>
+      <p>Hero headings and banners scale down to <strong>38–48px on mobile</strong>. Prevents horizontal overflow and maintains visual hierarchy without manual breakpoints.</p>
+    </div>
+  </div>
+  <div class="ux-row">
+    <div class="ux-dot purple"></div>
+    <div class="ux-content">
+      <h4>Medium text (24–55px) — Gentle scaling</h4>
+      <p>Section headings shrink proportionally. The curve formula <strong>0.23x + 25</strong> ensures the reduction feels natural — not jarring — across viewport sizes.</p>
+    </div>
+  </div>
+  <div class="ux-row">
+    <div class="ux-dot green"></div>
+    <div class="ux-content">
+      <h4>Small text (≤24px) — No scaling, 1:1</h4>
+      <p>Body text, captions, and labels stay <strong>exactly the same size</strong> on mobile and desktop. Minimum readability is always preserved — no media query needed.</p>
+    </div>
+  </div>
+  <div class="ux-row">
+    <div class="ux-dot orange"></div>
+    <div class="ux-content">
+      <h4>Fluid middle zone — vw-based</h4>
+      <p>Between mobile (375px) and desktop (1440px), font size scales fluidly with <strong>viewport width</strong>. No abrupt jumps at breakpoints — smooth transition throughout.</p>
+    </div>
+  </div>
+  <div class="ux-row">
+    <div class="ux-dot purple"></div>
+    <div class="ux-content">
+      <h4>User control fully respected</h4>
+      <p>Desktop always renders the <strong>exact px value the user typed</strong>. The formula only adjusts mobile — users get predictable results on the screen they're designing for.</p>
+    </div>
+  </div>
+  <div class="ux-row">
+    <div class="ux-dot green"></div>
+    <div class="ux-content">
+      <h4>Per-tag independence — no hierarchy collisions</h4>
+      <p>Each bb-font tag gets the formula applied <strong>independently</strong>. No ratio-based cascading means body text can never accidentally exceed h1 size on mobile.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const tags = [
+  {name:'h1',  defaultPx:56},
+  {name:'h2',  defaultPx:44},
+  {name:'h3',  defaultPx:36},
+  {name:'h4',  defaultPx:28},
+  {name:'h5',  defaultPx:24},
+  {name:'h6',  defaultPx:18},
+  {name:'body',defaultPx:16},
+  {name:'caption',defaultPx:13},
+];
+
+function calcMobile(u) {
+  const curve = u * 0.23 + 25;
+  return Math.round(Math.min(u, curve));
+}
+
+function calcVw(u) {
+  return (u / 14.4).toFixed(2);
+}
+
+function render() {
+  const u = parseInt(document.getElementById('userPx').value);
+  document.getElementById('pxOut').textContent = u + 'px';
+
+  const mob = calcMobile(u);
+  const desk = u;
+  const ratio = Math.round((mob / desk) * 100);
+
+  document.getElementById('mobileVal').textContent = mob + 'px';
+  document.getElementById('desktopVal').textContent = desk + 'px';
+  document.getElementById('ratioVal').textContent = ratio + '%';
+
+  const curveVal = (u * 0.23 + 25).toFixed(1);
+  const vw = calcVw(u);
+  document.getElementById('liveCss').textContent =
+`/* User input: ${u}px → auto generated */
+.bb-font-[tag] span {
+  font-size: clamp(
+    min(${u}px, calc(${u}px * 0.23 + 25px)),  /* mobile: ${mob}px  (curve: ${curveVal}px) */
+    ${vw}vw,                                    /* fluid mid */
+    ${u}px                                      /* desktop: ${desk}px */
+  ) !important;
+}`;
+
+  // table
+  let rows = '';
+  tags.forEach(t => {
+    const m = calcMobile(u);
+    const reduction = u > 24 ? Math.round((1 - m/u)*100) + '%' : '—';
+    const isSmall = u <= 24;
+    const badge = isSmall
+      ? '<span class="badge same">1:1</span>'
+      : m < u * 0.6
+        ? '<span class="badge warn">Large reduction</span>'
+        : '<span class="badge ok">Optimal</span>';
+
+    rows += `<tr>
+      <td class="tag-name">${t.name}</td>
+      <td style="font-family:var(--mono);color:var(--text2)">${u}px</td>
+      <td class="val-mobile">${m}px</td>
+      <td class="val-desktop">${u}px</td>
+      <td style="font-family:var(--mono);font-size:.75rem;color:var(--text2)">${reduction}</td>
+      <td>${badge}</td>
+    </tr>`;
+  });
+  document.getElementById('tbody').innerHTML = rows;
+
+  drawCurve(u);
+}
+
+function drawCurve(highlight) {
+  const canvas = document.getElementById('curveCanvas');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.parentElement.offsetWidth - 48;
+  const H = 200;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const pad = { top: 16, right: 16, bottom: 32, left: 40 };
+  const gw = W - pad.left - pad.right;
+  const gh = H - pad.top - pad.bottom;
+
+  // bg
+  ctx.fillStyle = '#0f0f11';
+  ctx.fillRect(0, 0, W, H);
+
+  // grid
+  ctx.strokeStyle = '#2a2a30';
+  ctx.lineWidth = 1;
+  [0,25,50,75,99].forEach(v => {
+    const x = pad.left + (v/99)*gw;
+    ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top+gh); ctx.stroke();
+    ctx.fillStyle = '#555566';
+    ctx.font = '10px DM Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(v+'px', x, H-8);
+  });
+  [0,25,50,75,99].forEach(v => {
+    const y = pad.top + gh - (v/99)*gh;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left+gw, y); ctx.stroke();
+    ctx.fillStyle = '#555566';
+    ctx.font = '10px DM Mono, monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(v, pad.left-6, y+4);
+  });
+
+  // 1:1 reference line
+  ctx.strokeStyle = '#2a2a3a';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4,4]);
+  ctx.beginPath();
+  ctx.moveTo(pad.left, pad.top+gh);
+  ctx.lineTo(pad.left+gw, pad.top);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // curve
+  ctx.strokeStyle = '#7c6aff';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  for (let u = 5; u <= 99; u++) {
+    const m = calcMobile(u);
+    const x = pad.left + ((u-5)/94)*gw;
+    const y = pad.top + gh - (m/99)*gh;
+    u === 5 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // highlight point
+  if (highlight >= 5 && highlight <= 99) {
+    const m = calcMobile(highlight);
+    const x = pad.left + ((highlight-5)/94)*gw;
+    const y = pad.top + gh - (m/99)*gh;
+
+    ctx.strokeStyle = '#36d6a0';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(x, pad.top+gh); ctx.lineTo(x, y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(x, y); ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = '#36d6a0';
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, Math.PI*2);
+    ctx.fill();
+
+    // label
+    ctx.fillStyle = '#0f0f11';
+    ctx.font = 'bold 10px DM Mono, monospace';
+    const lx = x + 8, ly = y - 8;
+    ctx.fillStyle = '#36d6a0';
+    ctx.fillText(`${highlight}→${m}px`, lx, ly);
+  }
+}
+
+document.getElementById('userPx').addEventListener('input', render);
+render();
+window.addEventListener('resize', () => render());
+</script>
+</body>
+</html>
